@@ -1,35 +1,66 @@
 @startuml
-!theme vibrant
-title Serverless Cloud Threat Response
+left to right direction
+skinparam wrapWidth 200
+skinparam defaultTextAlignment center
+skinparam database {
+  BackgroundColor #F0F8FF
+  BorderColor #1E90FF
+}
+skinparam node {
+  BackgroundColor #F5F5F5
+  BorderColor #808080
+}
+skinparam cloud {
+  BackgroundColor #F5F5F5
+  BorderColor #808080
+}
+skinparam queue {
+  BackgroundColor #FFFACD
+  BorderColor #DAA520
+}
+skinparam rectangle {
+  BackgroundColor #F0FFF0
+  BorderColor #228B22
+}
 
-actor "Security Engineer" as User
-cloud "Shodan Monitor" as Shodan
-database "DynamoDB" as DynamoDB
-rectangle "Secrets Manager" as Secrets
-queue "API Gateway" as APIGateway
-rectangle "Public EC2 Instances" as EC2
+title Cloud Security Automation Workflow
 
-rectangle "CheckAccount-Lambda" as CheckAccount
-rectangle "OnboardShodan-Lambda" as OnboardShodan
-rectangle "SaveAlert-Contain-Remediate-Lambda" as SaveAlert
-rectangle "RecoverInstance-Lambda" as RecoverInstance
+actor User
 
+component "EC2 Resources\n(Public IPs)" as EC2
 
+rectangle "GetPublicIps-Lambda" as GetIPs
 
-User -right-> Shodan : Monitors IPs externally
+database "DynamoDB\n(Resource Inventory)" as DynamoDB
 
-CheckAccount -down-> DynamoDB : Save discovered IPs
-OnboardShodan -down-> DynamoDB : Read IP list
-OnboardShodan -right-> Shodan : Subscribe IPs
+rectangle "OnboardShodan-Lambda" as Onboard
 
-Shodan -down-> SaveAlert : Send alert
+node "Shodan Monitor\n(Server)" as Shodan
 
-SaveAlert -down-> DynamoDB : Update record\nStore original SG
-SaveAlert -right-> EC2 : Apply Quarantine SG
-SaveAlert -down-> Secrets : Get email creds + recovery URL
-SaveAlert -down-> User : Send email with link
+rectangle "TrackAlert-Contain-EmailRemediate-Lambda" as Contain
 
-User -down-> APIGateway : Click recovery link
-APIGateway -down-> RecoverInstance : Invoke Lambda
-RecoverInstance -down-> DynamoDB : Get origin
+cloud "Email Service\n(SES/SMTP)" as Email
+
+rectangle "RecoverInstance-Lambda" as Recover
+
+' Optional: API Gateway as a queue/folder if you have it
+' queue "API Gateway" as APIGW
+
+' Flow connections
+EC2 --> GetIPs : Query all\nPublic IPs
+GetIPs --> DynamoDB : Save IPs & Resource Names
+
+DynamoDB --> Onboard : Stream INSERT\ntriggers onboarding
+Onboard --> Shodan : Check Groups\nCreate & Configure Alerts
+
+Shodan --> Contain : Send Security Alert
+Contain --> DynamoDB : Log Alert & SG Info
+Contain --> EC2 : Apply Quarantine SG
+Contain --> Email : Send Recovery Email
+Email --> User : One-click Recovery Link
+
+User --> Recover : Click Recovery Link
+Recover --> DynamoDB : Read Original SG
+Recover --> EC2 : Restore Original SG
+Recover --> DynamoDB : Mark Incident Remediated
 @enduml
