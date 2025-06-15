@@ -21,7 +21,7 @@ This project automates:
 | ------ | ------- |
 | **1️⃣ `GetPublicIps-Lambda`** | Queries your AWS account for all public IP addresses and saves them to the `PublicIPAddresses` DynamoDB table. |
 | **2️⃣ `OnboardShodan-Lambda`** | Subscribes discovered IP addresses to Shodan Monitor with configured network alerts. |
-| **3️⃣ `SaveAlert-Contain-Remediate-Lambda`** | Triggered by a Shodan alert; Saves alert to DynamoDB; Sends playbook with remediation instructions to account owner, enabling automatic restoration of security groups with a click once completed.
+| **3️⃣ `TrackAlert-Contain-EmailRemediate-Lambda`** | Triggered by a Shodan alert; Saves alert to DynamoDB; Emails playbook with remediation instructions to account owner, enabling automatic restoration of security groups with a click once completed.
   - Saves the alert to DynamoDB  
   - Retrieves the affected resource  
   - Stores its current Security Group configuration  
