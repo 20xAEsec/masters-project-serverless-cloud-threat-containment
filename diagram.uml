@@ -1,0 +1,35 @@
+@startuml
+!theme vibrant
+title Serverless Cloud Threat Response - Linear Flow
+
+actor "Security Engineer" as User
+cloud "Shodan Monitor" as Shodan
+database "DynamoDB" as DynamoDB
+rectangle "Secrets Manager" as Secrets
+queue "API Gateway" as APIGateway
+rectangle "Public EC2 Instances" as EC2
+
+rectangle "CheckAccount-Lambda" as CheckAccount
+rectangle "OnboardShodan-Lambda" as OnboardShodan
+rectangle "SaveAlert-Contain-Remediate-Lambda" as SaveAlert
+rectangle "RecoverInstance-Lambda" as RecoverInstance
+
+
+
+User -right-> Shodan : Monitors IPs externally
+
+CheckAccount -down-> DynamoDB : Save discovered IPs
+OnboardShodan -down-> DynamoDB : Read IP list
+OnboardShodan -right-> Shodan : Subscribe IPs
+
+Shodan -down-> SaveAlert : Send alert
+
+SaveAlert -down-> DynamoDB : Update record\nStore original SG
+SaveAlert -right-> EC2 : Apply Quarantine SG
+SaveAlert -down-> Secrets : Get email creds + recovery URL
+SaveAlert -down-> User : Send email with link
+
+User -down-> APIGateway : Click recovery link
+APIGateway -down-> RecoverInstance : Invoke Lambda
+RecoverInstance -down-> DynamoDB : Get origin
+@enduml
