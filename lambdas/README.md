@@ -1,7 +1,10 @@
 ## 🔑 IAM Policies (Least Privilege)
 
 Below are the recommended **inline IAM policies** for each Lambda execution role.  
-Replace `YOUR_ACCOUNT_ID` with your actual AWS account ID and 'TABLE_NAME' with your DynamoDB table, and 'SECRET_NAME' with the secret key in AWS Secrets Manager
+
+Replace `YOUR_ACCOUNT_ID` with your actual AWS account ID  
+`TABLE_NAME` with your DynamoDB table,  
+`SECRET_NAME` with the secret key in AWS Secrets Manager
 
 ---
 
