@@ -40,24 +40,47 @@ Replace `YOUR_ACCOUNT_ID` with your actual AWS account ID
 ```
 ### 📌 **2️⃣ OnboardShodan-Lambda**
 
-This Lambda reads the public IP inventory from DynamoDB and subscribes each IP to **Shodan Monitor** for continuous monitoring.
+This Lambda triggers on an INSERT event from DynamoDB and checks Shodan for presence of IP, to determine if IP needs to be onboarded. Configure a Stream between your DynamoDB table and this Lambda.
 
 **Recommended Inline Policy:**
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:Scan",
-        "dynamodb:Query",
-        "dynamodb:GetItem"
-      ],
-      "Resource": "arn:aws:dynamodb:us-west-2:YOUR_ACCOUNT_ID:table/<TABLE_NAME>"
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "VisualEditor0",
+			"Effect": "Allow",
+			"Action": [
+				"logs:CreateLogStream",
+				"secretsmanager:GetSecretValue",
+				"dynamodb:GetItem",
+				"logs:CreateLogGroup",
+				"logs:PutLogEvents"
+			],
+			"Resource": [
+				"arn:aws:dynamodb:us-west-2:<ACCOUNT_ID>:table/<TABLE_NAME>",
+				"arn:aws:secretsmanager:us-west-2:<ACCOUNT_ID>:secret:<SECRET_NAME>",
+				"arn:aws:logs:us-west-2:<ACCOUNT_ID>:log-group:/aws/lambda/onboard_shodan:*"
+			]
+		},
+		{
+			"Sid": "VisualEditor1",
+			"Effect": "Allow",
+			"Action": [
+				"dynamodb:GetShardIterator",
+				"dynamodb:DescribeStream",
+				"dynamodb:GetRecords"
+			],
+			"Resource": "arn:aws:dynamodb:us-west-2:<ACCOUNT_ID>:table/<TABLE_NAME>/stream/*"
+		},
+		{
+			"Sid": "VisualEditor2",
+			"Effect": "Allow",
+			"Action": "dynamodb:ListStreams",
+			"Resource": "arn:aws:dynamodb:us-west-2:<ACCOUNT_ID>:table/<TABLE_NAME>/stream/*"
+		}
+	]
 }
 ```
   
