@@ -16,13 +16,13 @@ This project automates:
 ---
 
 ### Architecture (PlantUML Diagram)
-![Diagram](https://i.imgur.com/l9a7uTb.png)
+![Diagram](https://i.imgur.com/59BDUuL.png)
 
 ## 📂 Included Lambda Functions
 
 | Lambda | Purpose |
 | ------ | ------- |
-| **1️⃣ `GetPublicIps-Lambda`** | Queries your AWS account for all public IP addresses and saves them to the `PublicIPAddresses` DynamoDB table. |
+| **1️⃣ `GetPublicIps-Lambda`** | Queries your AWS account for all public IP addresses and saves them to your DynamoDB table. |
 | **2️⃣ `OnboardShodan-Lambda`** | Subscribes discovered IP addresses to Shodan Monitor with configured network alerts. |
 | **3️⃣ `TrackAlert-Contain-EmailRemediate-Lambda`** | Triggered by a Shodan alert; Saves alert to DynamoDB; Emails playbook with remediation instructions to account owner, enabling automatic restoration of security groups with a click once completed.
   - Saves the alert to DynamoDB  
