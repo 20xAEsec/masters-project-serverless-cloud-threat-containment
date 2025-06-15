@@ -23,19 +23,10 @@ This project automates:
 | Lambda | Purpose |
 | ------ | ------- |
 | **1️⃣ `GetPublicIps-Lambda`** | Queries your AWS account for all public IP addresses and saves them to your DynamoDB table. |
-| **2️⃣ `OnboardShodan-Lambda`** | Subscribes discovered IP addresses to Shodan Monitor with configured network alerts. |
-| **3️⃣ `TrackAlert-Contain-EmailRemediate-Lambda`** | Triggered by a Shodan alert; Saves alert to DynamoDB; Emails playbook with remediation instructions to account owner, enabling automatic restoration of security groups with a click once completed.
-  - Saves the alert to DynamoDB  
-  - Retrieves the affected resource  
-  - Stores its current Security Group configuration  
-  - Switches the Security Group to a restrictive **quarantine SG**  
-  - Sends an email with remediation instructions and a **one-click recovery link** 
-      -  **4️⃣ `RecoverInstance-Lambda`** triggered when a user clicks the link in the alert email.
-  - Reads the original Security Group info from DynamoDB  
-  - Restores it to the resource  
-  - Marks the incident as **remediated** |
+| **2️⃣ `OnboardShodan-Lambda`** | Triggered when new IPs are added to DynamoDB. Checks if each IP is already covered by a Shodan Monitor network alert group. If not, it creates a new group named after the resource and configures recommended alert triggers to ensure continuous monitoring. |
+| **3️⃣ `TrackAlert-Contain-EmailRemediate-Lambda`** | Triggered by a Shodan alert. Saves the alert to DynamoDB, retrieves the affected resource, stores its current Security Group configuration, switches the Security Group to a restrictive **quarantine SG**, and sends an email with remediation instructions plus a **one-click recovery link**. |
+| **4️⃣ `RecoverInstance-Lambda`** | Triggered when a user clicks the recovery link in the alert email. Reads the original Security Group info from DynamoDB, restores it to the affected resource, and marks the incident as **remediated**. |
 
----
 
 ## 🗂️ AWS Resources Used
 
@@ -52,13 +43,13 @@ This project automates:
 
 | Name | Purpose |
 | ---- | ------- |
-| **DynamoDB Table** | `PublicIPAddresses` with Partition Key: `IPAddress`. Other attributes are added dynamically (`ARN`, `Alert`, `RemediationStatus`, `SecurityGroup`, etc). |
+| **DynamoDB Table** | `PublicIPAddresses` with Partition Key: `IPAddress`. Stream Configured between this table and OnboardShodan-Lambda. Other attributes are added dynamically (`ARN`, `Alert`, `RemediationStatus`, `SecurityGroup`, etc). |
 | **Quarantine SG** | A restrictive security group (`sg-xxxxxxxx`) that blocks inbound/outbound traffic. |
 | **Secrets Manager** | Stores `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `RECIPIENT_EMAIL`, `RECOVER_LAMBDA_URL` (your API Gateway URL). |
 
 ---
 
-## ✉️ How Email Recovery Works
+## ✉️ How Email Remediation Works
 
 When containment occurs:
 - The `SaveAlert-Contain-Remediate` Lambda sends an email with:
@@ -76,7 +67,7 @@ When containment occurs:
 
 ## ✅ IAM Permissions
 
-All Lambdas use least privilege:
+All Lambdas use least privilege: see /lambdas for complete IAM policies
 
 - **EC2:** `DescribeInstances`, `ModifyInstanceAttribute`
 - **DynamoDB:** `GetItem`, `PutItem`, `UpdateItem`
