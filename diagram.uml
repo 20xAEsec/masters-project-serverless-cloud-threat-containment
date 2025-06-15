@@ -1,6 +1,6 @@
 @startuml
 !theme vibrant
-title Serverless Cloud Threat Response - Linear Flow
+title Serverless Cloud Threat Response
 
 actor "Security Engineer" as User
 cloud "Shodan Monitor" as Shodan
