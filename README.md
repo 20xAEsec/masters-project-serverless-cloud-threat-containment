@@ -15,7 +15,7 @@ This project automates:
 
 ---
 
-### Architecture (Click to Expand)
+## 🏛️ Architecture (Click to Expand)
 ![Diagram](https://i.imgur.com/IgANPzb.png)
 
 ## 📂 Included Lambda Functions
