@@ -4,7 +4,6 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 
-
 def get_secret():
 
     secret_name = "capstone-secrets"
@@ -36,6 +35,8 @@ dynamodb = boto3.resource('dynamodb')
 
 # DynamoDB table name (replace with your actual table name)
 TABLE_NAME = get_secret()['DYNAMODB_TABLE']
+print(f"TABLE NAME - {TABLE_NAME}")
+
 
 def lambda_handler(event, context):
     # Describe all EC2 instances
@@ -54,11 +55,20 @@ def lambda_handler(event, context):
                 instance_id = instance['InstanceId']
                 arn = f'arn:aws:ec2:us-west-2:{account_id}:instance/{instance_id}'
 
+                # ✅ Get the Name tag if it exists
+                resource_name = 'Unknown'
+                if 'Tags' in instance:
+                    for tag in instance['Tags']:
+                        if tag['Key'] == 'Name':
+                            resource_name = tag['Value']
+                            break
+
                 # Put item into DynamoDB
                 table.put_item(
                     Item={
                         'IPAddress': public_ip,
                         'ARN': arn,
+                        "ResourceName": resource_name,
                         'Alert': False,  # default
                         'RemediationStatus': 'Pending'  # default
                     }
