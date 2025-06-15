@@ -15,6 +15,9 @@ This project automates:
 
 ---
 
+### PlantUML Diagram
+![Serverless Cloud Threat Response]([https://your-domain.com/path/to/architecture.png](https://imgur.com/a/AkGVqsr))
+
 ## 📂 Included Lambda Functions
 
 | Lambda | Purpose |
