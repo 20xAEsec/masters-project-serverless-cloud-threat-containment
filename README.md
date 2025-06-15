@@ -15,8 +15,8 @@ This project automates:
 
 ---
 
-### PlantUML Diagram
-![Diagram](https://imgur.com/a/AkGVqsr.png)
+### Architecture (PlantUML Diagram)
+![Diagram](https://i.imgur.com/l9a7uTb.png)
 
 ## 📂 Included Lambda Functions
 
