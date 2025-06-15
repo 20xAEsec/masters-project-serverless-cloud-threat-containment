@@ -29,8 +29,8 @@ This project automates:
   - Retrieves the affected resource  
   - Stores its current Security Group configuration  
   - Switches the Security Group to a restrictive **quarantine SG**  
-  - Sends an email with remediation instructions and a **one-click recovery link** |
-| **4️⃣ `RecoverInstance-Lambda`** | Triggered when a user clicks the link in the alert email:  
+  - Sends an email with remediation instructions and a **one-click recovery link** 
+      -  **4️⃣ `RecoverInstance-Lambda`** triggered when a user clicks the link in the alert email.
   - Reads the original Security Group info from DynamoDB  
   - Restores it to the resource  
   - Marks the incident as **remediated** |
