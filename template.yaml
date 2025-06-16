@@ -1,0 +1,287 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Portable Shodan-automation stack. Clone & deploy in any AWS account.
+
+Parameters:
+  CodeBucket:
+    Type: String
+    Default: ""
+    Description: S3 bucket holding your Lambda zip artifacts. Leave blank for default.
+  CodeKeyPrefix:
+    Type: String
+    Default: ""
+    Description: Prefix/path in CodeBucket where your zips are stored. Leave blank for default.
+  PublicIPTableName:
+    Type: String
+    Default: ""
+    Description: DynamoDB table name for storing IP→SG mappings. Leave blank to auto-generate.
+  <TableName>SecretName:
+    Type: String
+    Default: ""
+    Description: Secrets Manager secret name (e.g. “<TableName>-secrets”). Leave blank to auto-generate.
+  AmiId:
+    Type: AWS::EC2::Image::Id
+    Description: AMI ID for test EC2 instance.
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t3.micro
+      - t3.small
+    Description: EC2 instance type.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet in which to launch your test EC2 instance.
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Description: Security group IDs to attach to your test EC2 instance.
+  SnapshotId:
+    Type: AWS::EC2::Snapshot::Id
+    Description: Snapshot ID to seed the EC2 root volume.
+
+Conditions:
+  UseCustomCodeBucket: !Not [ !Equals [ !Ref CodeBucket, "" ] ]
+  UseCustomCodePrefix: !Not [ !Equals [ !Ref CodeKeyPrefix, "" ] ]
+  UseCustomTableName: !Not [ !Equals [ !Ref PublicIPTableName, "" ] ]
+  UseCustomSecretName: !Not [ !Equals [ !Ref <TableName>SecretName, "" ] ]
+
+Resources:
+
+  ## S3 buckets for CSVs
+  CsvBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-csv-bucket"
+
+  AlertsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-alerts-bucket"
+
+  ## DynamoDB table for IP→SG mappings
+  PublicIPTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !If
+        - UseCustomTableName
+        - !Ref PublicIPTableName
+        - !Sub "${AWS::StackName}-<TableName>"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: IPAddress
+          AttributeType: S
+      KeySchema:
+        - AttributeName: IPAddress
+          KeyType: HASH
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+  ## Secrets Manager secret (name populated after deploy)
+  <TableName>Secret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !If
+        - UseCustomSecretName
+        - !Ref <TableName>SecretName
+        - !Sub "${AWS::StackName}-secrets"
+      Description: !Sub "Secrets for ${AWS::StackName}"
+      # SecretString can be injected via CLI/console post-deploy
+
+  ## Shared IAM role for all Lambdas, with least-privilege policies
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: [sts:AssumeRole]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        # DynamoDB access
+        - PolicyName: PublicIPTableAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Scan
+                Resource: !GetAtt PublicIPTable.Arn
+
+        # Read the <TableName> secret
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                Resource: !Ref <TableName>Secret
+
+        # EC2 modify permissions for recover logic
+        - PolicyName: EC2Modify
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:ModifyInstanceAttribute
+                Resource: "*"
+
+        # Read inventory CSV
+        - PolicyName: S3InventoryAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${CsvBucket}"
+                  - !Sub "arn:aws:s3:::${CsvBucket}/*"
+
+        # Read/write alerts CSV
+        - PolicyName: S3AlertsAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${AlertsBucket}"
+                  - !Sub "arn:aws:s3:::${AlertsBucket}/*"
+
+  ## Shared HTTP API for webhook & recover endpoints
+  ShodanApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-Api"
+      StageName: prod
+
+  ## 1️⃣ GetPublicIps Lambda: scheduled daily
+  GetPublicIpsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-GetPublicIps"
+      Handler: get_public_ips_lambda.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      MemorySize: 128
+      Timeout: 30
+      CodeUri:
+        Bucket: !If [UseCustomCodeBucket, !Ref CodeBucket, !Sub "awslambda-${AWS::Region}-tasks"]
+        Key:    !If [UseCustomCodePrefix, !Sub "${CodeKeyPrefix}/get_public_ips-*.zip", !Sub "/snapshots/${AWS::AccountId}/get_public_ips-*.zip"]
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 day)
+
+  ## 2️⃣ OnboardShodan Lambda: triggers on new inventory CSV
+  OnboardShodanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-OnboardShodan"
+      Handler: onboard_shodan.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      MemorySize: 128
+      Timeout: 30
+      CodeUri:
+        Bucket: !If [UseCustomCodeBucket, !Ref CodeBucket, !Sub "awslambda-${AWS::Region}-tasks"]
+        Key:    !If [UseCustomCodePrefix, !Sub "${CodeKeyPrefix}/onboard_shodan-*.zip", !Sub "/snapshots/${AWS::AccountId}/onboard_shodan-*.zip"]
+      Events:
+        InventoryFileCreated:
+          Type: S3
+          Properties:
+            Bucket: !Ref CsvBucket
+            Events: s3:ObjectCreated:*
+
+  ## 3️⃣ Receive & Save Alert Lambda: webhook endpoint
+  ReceiveSaveAlertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-SaveAlert"
+      Handler: receive_save_alert_lambda.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      MemorySize: 128
+      Timeout: 30
+      CodeUri:
+        Bucket: !If [UseCustomCodeBucket, !Ref CodeBucket, !Sub "awslambda-${AWS::Region}-tasks"]
+        Key:    !If [UseCustomCodePrefix, !Sub "${CodeKeyPrefix}/receive_save_alert-*.zip", !Sub "/snapshots/${AWS::AccountId}/receive_save_alert-*.zip"]
+      Events:
+        ShodanAlert:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ShodanApi
+            Path: /shodan-alert
+            Method: post
+
+  ## 4️⃣ RecoverInstance Lambda: recover endpoint
+  RecoverInstanceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-RecoverInstance"
+      Handler: recover_instance.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      MemorySize: 128
+      Timeout: 30
+      CodeUri:
+        Bucket: !If [UseCustomCodeBucket, !Ref CodeBucket, !Sub "awslambda-${AWS::Region}-tasks"]
+        Key:    !If [UseCustomCodePrefix, !Sub "${CodeKeyPrefix}/recover_instance-*.zip", !Sub "/snapshots/${AWS::AccountId}/recover_instance-*.zip"]
+      Events:
+        RecoverApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ShodanApi
+            Path: /recover
+            Method: post
+
+  ## Optional test EC2 instance
+  TestInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds: !Ref SecurityGroupIds
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            SnapshotId: !Ref SnapshotId
+            VolumeSize: 18
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-TestInstance"
+
+Outputs:
+  PublicIPTableName:
+    Description: "DynamoDB table name for IP→SG mappings"
+    Value: !Ref PublicIPTable
+  CsvBucketName:
+    Description: "S3 bucket name for inventory CSVs"
+    Value: !Ref CsvBucket
+  AlertsBucketName:
+    Description: "S3 bucket name for alerts CSVs"
+    Value: !Ref AlertsBucket
+  ShodanApiEndpoint:
+    Description: "Base URL for Shodan-alert & recover APIs"
+    Value: !Sub "https://${ShodanApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
