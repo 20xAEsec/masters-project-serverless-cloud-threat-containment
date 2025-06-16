@@ -76,6 +76,10 @@ All Lambdas use least privilege: see /lambdas for complete IAM policies
 
 ---
 
+## 📝 Self Deployment (IaC)
+Use the Cloudformation Template in `template.yaml` to deploy to your own AWS Account.  
+Follow contained instructions to name your resources and fill in placeholders where requested.
+
 ## 🚀 Deployment Steps
 
 1. **Clone the repo**
