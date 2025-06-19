@@ -16,7 +16,7 @@ This project automates:
 ---
 
 ## 🏛️ Architecture (Click to Expand)
-![Diagram](https://i.imgur.com/IgANPzb.png)
+![Diagram](https://i.ibb.co/bg5LJMYH/Shodan-Diagram-drawio.png)
 
 ## 📂 Included Lambda Functions
 
