@@ -24,7 +24,7 @@ This project automates:
 | ------ | ------- |
 | **1️⃣ `GetPublicIps-Lambda`** | Queries your AWS account for all public IP addresses and saves them to your DynamoDB table. |
 | **2️⃣ `OnboardShodan-Lambda`** | Triggered when new IPs are added to DynamoDB. Checks if each IP is already covered by a Shodan Monitor network alert group. If not, it creates a new group named after the resource and configures recommended alert triggers to ensure continuous monitoring. |
-| **3️⃣ `TrackAlert-Contain-EmailRemediate-Lambda`** | Triggered by a Shodan alert. Saves the alert to DynamoDB, retrieves the affected resource, stores its current Security Group configuration, switches the Security Group to a restrictive **quarantine SG**, and sends an email with remediation instructions plus a **one-click recovery link**. |
+| **3️⃣ `AlertContain-Lambda`** | Triggered by a Shodan alert. Saves the alert to DynamoDB, retrieves the affected resource, stores its current Security Group configuration, switches the Security Group to a restrictive **quarantine SG**, and sends an email with remediation instructions plus a **one-click recovery link**. |
 | **4️⃣ `RecoverInstance-Lambda`** | Triggered when a user clicks the recovery link in the alert email. Reads the original Security Group info from DynamoDB, restores it to the affected resource, and marks the incident as **remediated**. |
 
 
