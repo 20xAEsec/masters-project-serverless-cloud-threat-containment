@@ -1,6 +1,6 @@
 # 🔒 Serverless Cloud Threat Response Automation
 ## In Progress; Estimated Completion - July 2025
-This repository contains a serverless, automated solution for identifying, detecting, containing, and recovering from cloud security incidents on AWS. Built as a **Masters of Cybersecurity and Information Assurance Project**, it demonstrates practical cloud security automation and incident response, performing actions for all core phases of NIST's Cybersecurity Framework (Identify, Protect & Detect, Respond, and Recover).
+This repository contains a serverless, automated solution for identifying, detecting, containing, and recovering from cloud security incidents on AWS. Built as a **Masters of Cybersecurity and Information Assurance Capstone Project**, it demonstrates practical cloud security automation and incident response, performing actions for all core phases of NIST's Cybersecurity Framework (Preparation, Detection and Analysis, Containment/Eradication/Recovery, and Post-Incident Activity).
 
 ---
 
