@@ -44,7 +44,7 @@ This project automates:
 | Name | Purpose |
 | ---- | ------- |
 | **DynamoDB Table** | `PublicIPAddresses` with Partition Key: `IPAddress`. Stream Configured between this table and OnboardShodan-Lambda. Other attributes are added dynamically (`ARN`, `Alert`, `RemediationStatus`, `SecurityGroup`, etc). |
-| **Quarantine SG** | A restrictive security group (`sg-xxxxxxxx`) that blocks inbound/outbound traffic. |
+| **Quarantine SG** | A restrictive security group that blocks all inbound/outbound traffic. |
 | **Secrets Manager** | Stores `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `RECIPIENT_EMAIL`, `RECOVER_LAMBDA_URL` (your API Gateway URL). |
 
 ---
@@ -67,7 +67,7 @@ When containment occurs:
 
 ## ✅ IAM Permissions
 
-All Lambdas use least privilege: see /lambdas for complete IAM policies
+All Lambdas adhere to least privilege: see /lambdas for complete IAM policies
 
 - **EC2:** `DescribeInstances`, `ModifyInstanceAttribute`
 - **DynamoDB:** `GetItem`, `PutItem`, `UpdateItem`
