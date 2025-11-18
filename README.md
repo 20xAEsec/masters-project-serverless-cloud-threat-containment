@@ -79,11 +79,3 @@ All Lambdas adhere to least privilege: see /lambdas for complete IAM policies
 ## 📝 Self Deployment (IaC)
 Use the Cloudformation Template in `template.yaml` to deploy to your own AWS Account, with all required resources.  
 Follow contained instructions to name your resources and fill in placeholders where requested.
-
-## 🚀 Deployment Steps
-
-1. **Clone the repo**
-
-   ```bash
-   git clone https://github.com/<your-username>/serverless-cloud-threat-response.git
-   cd serverless-cloud-threat-response
