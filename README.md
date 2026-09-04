@@ -1,9 +1,9 @@
-# 🔒 Serverless Cloud Threat Response Automation
+# Serverless Cloud Threat Response Automation
 This repository contains a serverless, automated solution for identifying, detecting, containing, and recovering from cloud security incidents on AWS. Built as a **Masters of Cybersecurity and Information Assurance Capstone Project**, it demonstrates practical cloud security automation and incident response, performing actions for all core phases of NIST's Cybersecurity Framework (Preparation, Detection and Analysis, Containment/Eradication/Recovery, and Post-Incident Activity).
 
 ---
 
-## 🚀 Project Overview
+## Project Overview
 
 This project automates:
 
@@ -14,10 +14,10 @@ This project automates:
 
 ---
 
-## 🏛️ Architecture (Click to Expand)
+## Architecture (Click to Expand)
 ![Diagram](https://i.ibb.co/Mk9QfCTj/Shodan-Diagram-White-drawio.png)
 
-## 📂 Included Lambda Functions
+## Included Lambda Functions
 
 | Lambda | Purpose |
 | ------ | ------- |
@@ -27,7 +27,7 @@ This project automates:
 | **4️⃣ `RecoverInstance-Lambda`** | Triggered when a user clicks the recovery link in the alert email. Reads the original Security Group info from DynamoDB, restores it to the affected resource, and marks the incident as **remediated**. |
 
 
-## 🗂️ AWS Resources Used
+## AWS Resources Used
 
 - **AWS Lambda** — all functions run serverlessly.
 - **Amazon DynamoDB** — stores IP addresses, alert data if applicable, security group backups, and incident status.
@@ -38,7 +38,7 @@ This project automates:
 
 ---
 
-## ⚙️ Key Configuration
+## Key Configuration
 
 | Name | Purpose |
 | ---- | ------- |
@@ -48,7 +48,7 @@ This project automates:
 
 ---
 
-## ✉️ How Email Remediation Works
+## How Email Remediation Works
 
 When containment occurs:
 - The `SaveAlert-Contain-Remediate` Lambda sends an email with:
@@ -64,7 +64,7 @@ When containment occurs:
 
 ---
 
-## ✅ IAM Permissions
+## IAM Permissions
 
 All Lambdas adhere to least privilege: see /lambdas for complete IAM policies
 
@@ -75,6 +75,6 @@ All Lambdas adhere to least privilege: see /lambdas for complete IAM policies
 
 ---
 
-## 📝 Self Deployment (IaC)
+## Self Deployment (IaC)
 Use the Cloudformation Template in `template.yaml` to deploy to your own AWS Account, with all required resources.  
 Follow contained instructions to name your resources and fill in placeholders where requested.
